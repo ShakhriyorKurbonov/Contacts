@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/profilesFragment">
+
+    <fragment
+        android:id="@+id/profilesFragment"
+        android:name="iqro.mobil.contact.fragments.ProfilesFragment"
+        tools:layout="@layout/profiles_fragment"
+        android:label="ProfilesFragment" >
+        <action
+            android:id="@+id/action_profilesFragment_to_profileFragment"
+            app:destination="@id/profileFragment" />
+        <action
+            android:id="@+id/action_profilesFragment_to_callLogFragment"
+            app:destination="@id/callLogFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="iqro.mobil.contact.fragments.ProfileFragment"
+        tools:layout="@layout/profile_fragment"
+        android:label="ProfilesFragment" >
+        <argument
+            android:name="name"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="No Name" />
+        <argument
+            android:name="number"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="No phone number" />
+        <argument
+            android:name="image"
+            app:argType="string"
+            android:defaultValue="0" />
+    </fragment>
+    <fragment
+        android:id="@+id/callLogFragment"
+        tools:layout="@layout/call_log_fragment"
+        android:name="iqro.mobil.contact.fragments.CallLogFragment"
+        android:label="CallLogFragment" />
+</navigation>

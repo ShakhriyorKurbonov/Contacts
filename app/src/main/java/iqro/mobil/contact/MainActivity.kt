@@ -3,6 +3,7 @@ package iqro.mobil.contact
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.sqlite.SQLiteDatabase
@@ -17,18 +18,22 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.room.util.getColumnIndex
-import iqro.mobil.contact.contactData.ContactDbManager
 import iqro.mobil.contact.databinding.ActivityMainBinding
 import iqro.mobil.contact.databinding.ProfilesFragmentBinding
+import iqro.mobil.contact.roomdb.ContactsDatabase
+import iqro.mobil.contact.roomdb.ContactsEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var myDbManager: ContactDbManager
     private lateinit var binding: ActivityMainBinding
 
 
@@ -36,7 +41,11 @@ class MainActivity : AppCompatActivity() {
     val requestContactsReadPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
-                contactsRead()
+                lifecycleScope.launch {
+                    withContext(Dispatchers.Main){
+                        contactsRead(this@MainActivity)
+                    }
+                }
             }
         }
 
@@ -45,8 +54,6 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        myDbManager = ContactDbManager(this)
-        myDbManager.onCreate()
 
 
 
@@ -55,7 +62,11 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.READ_CONTACTS
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            contactsRead()
+         lifecycleScope.launch {
+             withContext(Dispatchers.Main){
+                 contactsRead(this@MainActivity)
+             }
+         }
         } else {
             requestContactsReadPermission.launch(Manifest.permission.READ_CONTACTS)
         }
@@ -68,34 +79,41 @@ class MainActivity : AppCompatActivity() {
 
 
     @SuppressLint("Range")
-    fun contactsRead() {
-        val contacts = contentResolver.query(
-            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-            null,
-            null,
-            null,
-            null
-        )
+    suspend fun contactsRead(context: Context) {
 
-        if (contacts != null) {
-            if (contacts.moveToFirst()) {
-                do {
-                    val name =
-                        contacts.getString(contacts.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
-                    val number =
-                        contacts.getString(contacts.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
-                    val photoUri =
-                        contacts.getString(contacts.getColumnIndex(ContactsContract.CommonDataKinds.Phone.PHOTO_URI))
+          val database=ContactsDatabase.getInstance(context)
+          val contacts = contentResolver.query(
+              ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+              null,
+              null,
+              null,
+              null
+          )
 
-                    if (photoUri != null) {
-                        myDbManager.insert(name, number, photoUri)
-                    } else {
-                        myDbManager.insert(name, number, "0")
-                    }
-                } while (contacts.moveToNext())
-                contacts.close()
-            }
-        }
+          if (contacts != null) {
+              if (contacts.moveToFirst()) {
+                  do {
+                      val name =
+                          contacts.getString(contacts.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
+                      val id =
+                          contacts.getString(contacts.getColumnIndex(ContactsContract.CommonDataKinds.Phone._ID))
+                      val number =
+                          contacts.getString(contacts.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
+                      val photoUri =
+                          contacts.getString(contacts.getColumnIndex(ContactsContract.CommonDataKinds.Phone.PHOTO_URI))
+
+                      if (photoUri != null) {
+                          database.contactsDao()
+                              .insertContacts(ContactsEntity(name =  name, number = number, image = photoUri))
+                      } else {
+                          database.contactsDao()
+                              .insertContacts(ContactsEntity(name = name, number =  number, image = "0"))
+                      }
+                  } while (contacts.moveToNext())
+                  contacts.close()
+              }
+          }
+
     }
 
 

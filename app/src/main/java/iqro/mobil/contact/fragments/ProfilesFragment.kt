@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -31,13 +32,15 @@ import iqro.mobil.contact.adapters.CustomAdapterB
 import iqro.mobil.contact.ItemClick
 import iqro.mobil.contact.dataClass.ProfileAData
 import iqro.mobil.contact.dataClass.ProfileBData
-import iqro.mobil.contact.contactData.ContactDbManager
 import iqro.mobil.contact.databinding.ProfilesFragmentBinding
+import iqro.mobil.contact.roomdb.ContactsDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 class ProfilesFragment : Fragment() {
     private var _binding: ProfilesFragmentBinding? = null
-    private lateinit var contactDbManager: ContactDbManager
     private val binding get() = _binding!!
     private var listB=ArrayList<ProfileBData>()
     private lateinit var customAdapterB: CustomAdapterB
@@ -52,8 +55,8 @@ class ProfilesFragment : Fragment() {
     @SuppressLint("SuspiciousIndentation")
     override fun onAttach(context: Context) {
         super.onAttach(context)
-      contactDbManager= ContactDbManager(requireContext())
-        contactDbManager.onCreate()
+
+
 
     }
 
@@ -164,47 +167,63 @@ class ProfilesFragment : Fragment() {
         }
 
 
-        val symbolList = contactsRead().keys.toList()
 
 
-        val customABC = CustomABC(contactsRead(),symbolList)
-        binding.recyclerViewABC.adapter=customABC
-        binding.recyclerViewABC.layoutManager=LinearLayoutManager(requireContext())
-        customABC.setListener(object :ItemClick{
-            override fun profileClick(adapterPosition: Int) {
+        lifecycleScope.launch {
+            val symbolList = contactsRead1().keys.toList()
+            val customABC = CustomABC(contactsRead1(),symbolList)
+            binding.conTv.text=contactsRead1().size.toString()+" ta kontaktlar"
+            withContext(Dispatchers.Main){
+                binding.recyclerViewABC.adapter=customABC
+                binding.recyclerViewABC.layoutManager=LinearLayoutManager(requireContext())
+                customABC.setListener(object :ItemClick{
+                    override fun profileClick(adapterPosition: Int) {
 
+                    }
+
+                    override fun intentCall(intent: Intent) {
+                        if (ContextCompat.checkSelfPermission(
+                                requireContext(),
+                                Manifest.permission.CALL_PHONE
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            startActivity(intent)
+                        } else {
+                            requestCallPermission.launch(Manifest.permission.CALL_PHONE)
+
+                        }
+                    }
+
+                    override fun intentSms(intent: Intent) {
+                        if (ContextCompat.checkSelfPermission(
+                                requireContext(),
+                                Manifest.permission.SEND_SMS
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            startActivity(intent)
+                        } else {
+                            requestSmsPermission.launch(Manifest.permission.SEND_SMS)
+                        }
+                    }
+
+                    override fun getData(name: String, number: String, image: String) {
+                        val args=ProfilesFragmentDirections.actionProfilesFragmentToProfileFragment(name,number,image)
+                        findNavController().navigate(args)
+                    }
+                })
             }
+        }
 
-            override fun intentCall(intent: Intent) {
-                if (ContextCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.CALL_PHONE
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    startActivity(intent)
-                } else {
-                    requestCallPermission.launch(Manifest.permission.CALL_PHONE)
 
-                }
-            }
 
-            override fun intentSms(intent: Intent) {
-                if (ContextCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.SEND_SMS
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    startActivity(intent)
-                } else {
-                    requestSmsPermission.launch(Manifest.permission.SEND_SMS)
-                }
-            }
 
-            override fun getData(name: String, number: String, image: String) {
-                val args=ProfilesFragmentDirections.actionProfilesFragmentToProfileFragment(name,number,image)
-                findNavController().navigate(args)
-            }
-        })
+
+
+
+
+
+
+
 
 
 
@@ -269,33 +288,28 @@ class ProfilesFragment : Fragment() {
 
     }
 
+
+
     @RequiresApi(Build.VERSION_CODES.N)
-    @SuppressLint("Range", "Recycle")
-    private fun contactsRead(): Map<Char, List<ProfileBData>> {
-        val map = LinkedHashMap<Char, List<ProfileBData>>()
-        val contacts = contactDbManager.fitch()
-        if (contacts != null) {
-            if (contacts.moveToFirst()) {
-                val namePosition = contacts.getColumnIndex("name")
-                val numberPosition = contacts.getColumnIndex("number")
-                do {
-                    if (numberPosition != -1 && namePosition != -1) {
-                        val name = contacts.getString(namePosition)
-                        val number = contacts.getString(numberPosition)
-                        val imageUri=contacts.getString(contacts.getColumnIndex("image"))
-                        Log.d("TAG", "contactsRead: $number $name")
-                        val firstChar = name[0].uppercaseChar()
-                        if (firstChar in 'A'..'Z') {
-                            val list = map.getOrDefault(firstChar, mutableListOf())
-                            (list as MutableList).add(ProfileBData(imageUri,name, number))
-                            map[firstChar] = list
-                        }
-                    }
-                } while (contacts.moveToNext())
-                contacts.close()
+    private suspend fun contactsRead1():Map<Char,List<ProfileBData>>{
+
+            val map = LinkedHashMap<Char, List<ProfileBData>>()
+
+          val  database=ContactsDatabase.getInstance(requireContext())
+            val contactList = database.contactsDao().getContacts()
+            for (i in contactList) {
+                val name = i.name
+                val number = i.number
+                val imageUri = i.image
+                val firstChar = (name.trim())[0].uppercaseChar()
+                if (firstChar in 'A'..'Z') {
+                    val list = map.getOrDefault(firstChar, mutableListOf())
+                    (list as MutableList).add(ProfileBData(imageUri, name, number))
+                    map[firstChar] = list
+                }
             }
-        }
-        return map
+
+            return map
     }
 
 

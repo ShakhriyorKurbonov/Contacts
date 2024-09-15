@@ -82,12 +82,12 @@ class CustomABC(val map: Map<Char, List<ProfileBData>>, val symbolList: List<Cha
                     phoneNumber = dataList[position!!].number
                     if (direction == ItemTouchHelper.RIGHT) {
                         val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$phoneNumber"))
-                        itemClick?.intentCall(intent)
                         customAdapterB.notifyItemChanged(position!!)
+                        itemClick?.intentCall(intent)
                     } else {
                        val intent= Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$phoneNumber"))
-                        itemClick?.intentSms(intent)
                         customAdapterB.notifyItemChanged(position!!)
+                        itemClick?.intentSms(intent)
                     }
                 }
             })

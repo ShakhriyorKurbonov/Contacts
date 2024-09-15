@@ -105,7 +105,15 @@
 
     </HorizontalScrollView>
 
-
+<TextView
+    android:layout_width="match_parent"
+    app:layout_constraintTop_toBottomOf="@id/aaa"
+    android:id="@+id/conTv"
+    android:layout_marginHorizontal="16dp"
+    android:background="@drawable/round_grey"
+    android:textStyle="bold"
+    android:gravity="center_horizontal"
+    android:layout_height="wrap_content"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewABC"
@@ -114,8 +122,9 @@
         android:layout_marginTop="14dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/conTv"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/aaa" />
+         />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

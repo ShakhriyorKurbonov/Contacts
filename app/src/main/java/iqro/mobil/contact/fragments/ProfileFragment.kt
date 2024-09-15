@@ -14,7 +14,7 @@ import androidx.fragment.app.Fragment
 import iqro.mobil.contact.R
 import iqro.mobil.contact.databinding.ProfileFragmentBinding
 
-class ProfileFragment : Fragment() {
+class ProfileFragment : androidx.fragment.app.Fragment() {
     private var _binding: ProfileFragmentBinding? = null
     private val binding get() = _binding!!
     val requestSmsPermission =
